@@ -1,4 +1,4 @@
-package com.miu.waa.assignment2;
+package com.miu.waa.assignment6;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
