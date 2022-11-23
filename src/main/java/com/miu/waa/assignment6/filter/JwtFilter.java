@@ -27,36 +27,44 @@ public class JwtFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
-
-        final String authorizationHeader = request.getHeader("Authorization");
-        String name = null;
-        String token = null;
-
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            token = authorizationHeader.substring(7);
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        final String authorizationHeader=request.getHeader("Authorization");
+        String name=null;
+        String token=null;
+        if(authorizationHeader!=null && authorizationHeader.startsWith("Bearer ")){
+            token=authorizationHeader.substring(7);
             try{
-                name = jwtUtil.getUsernameFromToken(token);
-            }catch (ExpiredJwtException e){ // TODO come back here!
-                String isRefreshToken = request.getHeader("isRefreshToken");
+                user= jwtUtil.getUsernameFromToken(token);
+                System.out.println("Auth User  "+email+"--"+token);
+            }catch (ExpiredJwtException e){
+                System.out.println("JWT is expired now try refresh token");
+                String isRefreshToken=request.getHeader("isRefreshToken");
+                if(isRefreshToken!=null){
+                    try{
+                        email= jwtUtil.getUsernameFromToken(isRefreshToken);
+                        System.out.println("In Refresh part");
+                        var userDetails=userDetailsService.loadUserByUsername(name);
+                        token= jwtUtil.generateToken(userDetails);
+                        var refreshToken=jwtUtil.generateRefreshToken(userDetails.getUsername());
+                        response.setHeader("isRefreshHeader",refreshToken);
+                        response.setHeader("accessToken",token);
+                    }catch (ExpiredJwtException ex){
+                        System.out.println("Refresh token is also expired"+ex.getMessage());
+                    }
+                }
             }
-
         }
+        if(email!=null && SecurityContextHolder.getContext().getAuthentication()==null){
 
-        if (name != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            var userDetails = userDetailsService.loadUserByUsername(name);
-            boolean isTokenValid = jwtUtil.validateToken(token);
-            if (isTokenValid) {
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-
+            var userDetails=userDetailsService.loadUserByUsername(name);
+            boolean isTokenValid=jwtUtil.validateToken(token);
+            if(isTokenValid){
+                UsernamePasswordAuthenticationToken authentication=new UsernamePasswordAuthenticationToken(userDetails,null,userDetails.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                System.out.println(name);
             }
         }
-
-        filterChain.doFilter(request, response);
+        filterChain.doFilter(request,response);
     }
 }
