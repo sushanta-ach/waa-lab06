@@ -1,0 +1,7 @@
+User Sends both Access Token and Refresh Token in every request.
+The filter in the backend performs--if both the tokens are present in the header, if access token is expired and refresh token is still valid
+extract username from refresh token and obtain userdetails using the username.
+Generate new access token and refresh token
+Set the user to the authentication context.
+Attach both of the tokens to response header
+In the client side, set up an interceptor to extract accessToken and refreshToken and send the updated tokens.
